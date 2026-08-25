@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F3F5F7">
+<title>MG ZS EV Long Range · Calculadora de carga</title>
+<style>
+  :root{
+    --bg:#F3F5F7; --panel:#FFFFFF; --stroke:#D9DFE4; --text:#182126;
+    --text-dim:#5B6770; --amber:#C1650B; --teal:#0E8272; --red:#C23B2E;
+  }
+  html{ background:var(--bg); }
+  *{box-sizing:border-box;}
+  html, body{ min-height:100%; }
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    padding:calc(20px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 40px calc(14px + env(safe-area-inset-left));
+  }
+  .mono{ font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .wrap{ max-width:1040px; margin:0 auto; }
+  .eyebrow{ font-size:12px; letter-spacing:1.5px; color:var(--amber); text-transform:uppercase; }
+  h1{ font-size:24px; margin:2px 0 18px; font-weight:700; }
+  .chips{ display:grid; grid-template-columns:repeat(auto-fit,minmax(125px,1fr)); gap:10px; margin-bottom:22px; }
+  .card{ background:var(--panel); border:1px solid var(--stroke); border-radius:12px; padding:16px 18px; }
+  .chip{ padding:10px 14px; }
+  .label{ font-size:11px; color:var(--text-dim); letter-spacing:0.3px; text-transform:uppercase; }
+  .chip-val{ font-size:15px; font-weight:700; margin-top:4px; color:var(--amber); }
+  .grid{ display:grid; grid-template-columns:290px 1fr; gap:20px; }
+  @media (max-width:760px){ .grid{ grid-template-columns:1fr; } }
+  .row{ margin-bottom:16px; }
+  .row-top{ display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px; color:var(--text-dim); }
+  .row-top .val{ font-weight:700; font-size:14px; }
+  input[type=range]{ width:100%; -webkit-appearance:none; height:4px; border-radius:4px; background:var(--stroke); }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--amber); cursor:pointer; border:2px solid var(--bg); }
+  input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:var(--amber); cursor:pointer; border:2px solid var(--bg); }
+  input[type=number].numbox{
+    width:72px; background:var(--bg); border:1px solid var(--stroke); border-radius:6px;
+    color:var(--text); font-weight:700; font-size:13px; text-align:right; padding:4px 6px;
+    font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  input[type=number].numbox:focus{ outline:none; border-color:var(--amber); }
+  input[type=number].numbox::-webkit-inner-spin-button{ opacity:0.6; }
+  .hint{ font-size:12px; color:var(--text-dim); margin-top:-8px; margin-bottom:14px; }
+  .card-title{ font-size:11px; color:var(--text-dim); letter-spacing:0.3px; text-transform:uppercase; margin-bottom:10px; }
+  svg text{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+  .summary{ display:grid; grid-template-columns:auto 1fr; gap:14px; }
+  @media (max-width:520px){ .summary{ grid-template-columns:1fr; } }
+  .metrics{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .metric-val{ font-size:20px; font-weight:700; }
+  .advisory{ margin-top:14px; border-color:var(--red); background:#FCECEA; }
+  .advisory .label{ color:var(--red); margin-bottom:6px; }
+  .advisory p{ font-size:13px; color:#3E4750; line-height:1.6; margin:0; }
+  .advisory b{ color:var(--text); }
+  .advisory b.warn{ color:var(--red); }
+  .footnote{ font-size:11px; color:#7A8590; margin-top:20px; line-height:1.6; }
+  .tabs{ display:flex; gap:6px; margin-bottom:18px; border-bottom:1px solid var(--stroke); }
+  .tab-btn{ background:none; border:none; font-size:14px; font-weight:700; color:var(--text-dim); padding:10px 4px; margin-right:18px; cursor:pointer; border-bottom:2px solid transparent; font-family:inherit; }
+  .tab-btn.active{ color:var(--amber); border-bottom-color:var(--amber); }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Calculadora de carga</div>
+  <h1>MG ZS EV Long Range · 2024</h1>
+
+  <div class="chips">
+    <div class="card chip"><div class="label">Batería</div><div class="chip-val mono">72,6 kWh NMC</div></div>
+    <div class="card chip"><div class="label">Motor</div><div class="chip-val mono">115 kW / 177 CV</div></div>
+    <div class="card chip"><div class="label">Autonomía WLTP</div><div class="chip-val mono">440 km</div></div>
+    <div class="card chip"><div class="label">Carga CC máx.</div><div class="chip-val mono">92 kW</div></div>
+    <div class="card chip"><div class="label">Carga CA máx.</div><div class="chip-val mono">11 kW</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabBtnCarga" onclick="switchTab('carga')">Carga</button>
+    <button class="tab-btn" id="tabBtnAutonomia" onclick="switchTab('autonomia')">Autonomía</button>
+  </div>
+
+  <div class="tab-panel active" id="tabCarga">
+  <div class="grid">
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-title">Sesión de carga</div>
+        <div class="row">
+          <div class="row-top"><span>Batería de salida</span><input type="number" class="numbox" id="numStart" min="0" max="99" step="1" value="10"></div>
+          <input type="range" id="startSoc" min="0" max="99" step="1" value="10">
+        </div>
+        <div class="row">
+          <div class="row-top"><span>Batería objetivo</span><input type="number" class="numbox" id="numEnd" min="1" max="100" step="1" value="90"></div>
+          <input type="range" id="endSoc" min="1" max="100" step="1" value="90">
+        </div>
+        <div class="row" style="margin-bottom:0;">
+          <div class="row-top"><span>Línea de corte recomendada</span><input type="number" class="numbox" id="numCutoff" min="60" max="90" step="1" value="80"></div>
+          <input type="range" id="cutoffSoc" min="60" max="90" step="1" value="80">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Condiciones</div>
+        <div class="row">
+          <div class="row-top"><span>Temperatura exterior</span><input type="number" class="numbox" id="numTemp" min="-15" max="35" step="1" value="20"></div>
+          <input type="range" id="tempC" min="-15" max="35" step="1" value="20">
+        </div>
+        <div class="hint" id="factorHint">Factor de potencia estimado: 100%</div>
+        <div class="row" style="margin-bottom:0;">
+          <div class="row-top"><span>Precio de la carga</span><input type="number" class="numbox" id="numPrice" min="0.10" max="0.90" step="0.01" value="0.45"></div>
+          <input type="range" id="price" min="0.10" max="0.90" step="0.01" value="0.45">
+        </div>
+        <div class="hint" style="margin-top:8px;margin-bottom:0;">El consumo (kWh/100km) para calcular km recuperados se ajusta en la pestaña Autonomía.</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-title">Potencia de carga (kW) según % batería</div>
+        <div id="chartPower"></div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-title">Tiempo acumulado (min) según % batería</div>
+        <div id="chartTime"></div>
+      </div>
+
+      <div class="summary">
+        <div class="card" id="gaugeCard"></div>
+        <div class="card metrics">
+          <div><div class="label">Tiempo</div><div class="metric-val mono" id="mTime">-</div></div>
+          <div><div class="label">Energía</div><div class="metric-val mono" id="mEnergy">-</div></div>
+          <div><div class="label">Autonomía</div><div class="metric-val mono" style="color:var(--teal)" id="mKm">-</div></div>
+          <div><div class="label">Coste</div><div class="metric-val mono" style="color:var(--amber)" id="mCost">-</div></div>
+        </div>
+      </div>
+
+      <div class="card advisory" id="advisory" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    Curva de potencia y tiempos: datos medidos reales del MG ZS EV Long Range 72,6 kWh (fuente: EVKX.net). La corrección por
+    temperatura es una estimación orientativa (no publicada por el fabricante): aplica un factor uniforme a toda la curva de
+    potencia, lo que alarga el tiempo total pero no cambia la energía que cabe en la batería. Este archivo funciona sin
+    conexión a internet ni dependencias externas.
+  </div>
+  </div>
+
+  <div class="tab-panel" id="tabAutonomia">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-title">Batería actual</div>
+      <div class="row" style="margin-bottom:0;">
+        <div class="row-top"><span>% de batería ahora mismo</span><input type="number" class="numbox" id="numNowSoc" min="0" max="100" step="1" value="50"></div>
+        <input type="range" id="nowSoc" min="0" max="100" step="1" value="50">
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-title">Consumo real de tu coche</div>
+      <div class="row">
+        <div class="row-top"><span>Consumo en ciudad</span><input type="number" class="numbox" id="numConsumoCiudad" min="12" max="20" step="1" value="16"></div>
+        <input type="range" id="consumoCiudad" min="12" max="20" step="1" value="16">
+      </div>
+      <div class="row" style="margin-bottom:0;">
+        <div class="row-top"><span>Consumo en autopista</span><input type="number" class="numbox" id="numConsumo" min="14" max="26" step="1" value="19"></div>
+        <input type="range" id="consumo" min="14" max="26" step="1" value="19">
+      </div>
+      <div class="hint" style="margin-top:8px;margin-bottom:0;">Por defecto están puestos los valores que encajan con pruebas reales de este modelo. Si tu coche marca otra cosa, cámbialos aquí — se usan en toda la app, también para calcular km recuperados al cargar.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Autonomía disponible ahora, con tu <span id="nowSocLabel">50</span>% de batería</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><div class="label">Ciudad</div><div class="metric-val mono" style="color:var(--teal)" id="rangeCity">-</div></div>
+        <div><div class="label">Autopista</div><div class="metric-val mono" style="color:var(--amber)" id="rangeHighway">-</div></div>
+      </div>
+    </div>
+
+    <div class="footnote">
+      Estimación a partir de 68,3 kWh útiles (dato de batería, fuente EVKX.net). El reparto ciudad/autopista no es un dato
+      oficial de MG — combina varias pruebas reales independientes de este modelo y sirve como punto de partida razonable.
+    </div>
+  </div>
+</div>
+
+<script>
+var KW = [20,26,32,38,44,50,55,61,67,73,79,79,79,80,80,80,81,81,81,81,81,81,81,81,81,82,82,82,82,82,82,82,82,82,82,82,82,83,81,81,81,81,81,81,81,81,82,82,70,70,70,70,70,70,70,71,71,71,71,71,72,63,63,63,62,63,63,63,63,63,64,64,64,64,56,55,55,55,55,55,55,27,25,25,25,25,24,24,24,20,16,15,14,13,12,11,10,9,8,7,6];
+var SEC = [0,115,206,282,347,404,455,500,541,579,614,647,681,714,747,780,813,845,878,911,943,976,1009,1041,1074,1106,1139,1171,1203,1235,1267,1300,1332,1364,1396,1429,1461,1493,1525,1558,1591,1623,1656,1688,1721,1754,1786,1818,1853,1891,1929,1966,2004,2042,2080,2117,2155,2192,2229,2266,2303,2342,2384,2426,2469,2511,2553,2595,2637,2679,2720,2762,2803,2844,2888,2936,2984,3032,3080,3128,3176,3241,3343,3448,3554,3660,3768,3878,3988,4108,4255,4426,4608,4804,5015,5245,5497,5775,6086,6439,6846];
+var KWH = [0,0.7,1.4,2.0,2.7,3.4,4.1,4.8,5.5,6.1,6.8,7.5,8.2,8.9,9.6,10.2,10.9,11.6,12.3,13.0,13.7,14.3,15.0,15.7,16.4,17.1,17.8,18.4,19.1,19.8,20.5,21.2,21.9,22.5,23.2,23.9,24.6,25.3,26.0,26.6,27.3,28.0,28.7,29.4,30.1,30.7,31.4,32.1,32.8,33.5,34.2,34.8,35.5,36.2,36.9,37.6,38.2,38.9,39.6,40.3,41.0,41.7,42.3,43.0,43.7,44.4,45.1,45.8,46.4,47.1,47.8,48.5,49.2,49.9,50.5,51.2,51.9,52.6,53.3,54.0,54.6,55.3,56.0,56.7,57.4,58.1,58.7,59.4,60.1,60.8,61.5,62.2,62.8,63.5,64.2,64.9,65.6,66.3,66.9,67.6,68.3];
+
+function tempFactor(t){
+  if(t>=20) return 1;
+  if(t>=10) return 0.9 + ((t-10)/10)*0.1;
+  if(t>=0) return 0.65 + (t/10)*0.25;
+  if(t>=-10) return 0.45 + ((t+10)/10)*0.2;
+  return 0.4;
+}
+function fmtDuration(sec){
+  sec = Math.round(sec);
+  var h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), r = sec%60;
+  if(h>0) return h+' h '+m+' min';
+  return m+' min '+(r<10?'0':'')+r+' s';
+}
+function fmtMin(sec){ return Math.round(sec/60)+' min'; }
+function fmtNum(n, d){ d = d===undefined?0:d; return n.toLocaleString('es-ES', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+
+function niceMax(v, step){
+  return Math.ceil(v/step)*step;
+}
+
+var CH = { W:600, H:230, mL:44, mR:14, mT:14, mB:26 };
+CH.pw = CH.W - CH.mL - CH.mR;
+CH.ph = CH.H - CH.mT - CH.mB;
+
+function niceStep(range, targetTicks){
+  var rough = range/targetTicks;
+  if(rough<=0) return 1;
+  var mag = Math.pow(10, Math.floor(Math.log10(rough)));
+  var norm = rough/mag;
+  var step;
+  if(norm<1.5) step=1;
+  else if(norm<3.5) step=2;
+  else if(norm<7.5) step=5;
+  else step=10;
+  return step*mag;
+}
+function niceTicks(range, targetTicks){
+  var step = niceStep(range, targetTicks);
+  var ticks = [];
+  for(var t=0; t<range+step*0.001; t+=step) ticks.push(Math.round(t*100)/100);
+  var last = ticks[ticks.length-1];
+  if(last < range) ticks.push(Math.round((last+step)*100)/100);
+  return { ticks: ticks, max: ticks[ticks.length-1] };
+}
+
+function buildChart(opts){
+  // opts: {points, maxY, yTicks, cutoff, a, b, lineColor, fillColor, idPrefix, unit}
+  var W=CH.W, H=CH.H, mL=CH.mL, mR=CH.mR, mT=CH.mT, mB=CH.mB, pw=CH.pw, ph=CH.ph;
+  function x(soc){ return mL + (soc/100)*pw; }
+  function y(v){ return mT + ph - (v/opts.maxY)*ph; }
+
+  var pathD = '';
+  opts.points.forEach(function(p,i){
+    pathD += (i===0?'M':'L') + x(p.soc).toFixed(1) + ',' + y(p.val).toFixed(1) + ' ';
+  });
+  var areaD = pathD + 'L' + x(100).toFixed(1) + ',' + y(0).toFixed(1) + ' L' + x(0).toFixed(1) + ',' + y(0).toFixed(1) + ' Z';
+
+  var svg = '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block;touch-action:none;" preserveAspectRatio="xMidYMid meet">';
+
+  // minor gridlines (halfway between major ticks, no labels) for finer reading
+  for(var mi=0; mi<opts.yTicks.length-1; mi++){
+    var midV = (opts.yTicks[mi]+opts.yTicks[mi+1])/2;
+    svg += '<line x1="'+mL+'" y1="'+y(midV).toFixed(1)+'" x2="'+(W-mR)+'" y2="'+y(midV).toFixed(1)+'" stroke="#EEF1F3" stroke-width="1"/>';
+  }
+  // minor vertical gridlines every 10%
+  [10,30,50,70,90].forEach(function(t){
+    svg += '<line x1="'+x(t).toFixed(1)+'" y1="'+mT+'" x2="'+x(t).toFixed(1)+'" y2="'+(mT+ph)+'" stroke="#EEF1F3" stroke-width="1"/>';
+  });
+  // major gridlines + y labels
+  opts.yTicks.forEach(function(t){
+    svg += '<line x1="'+mL+'" y1="'+y(t).toFixed(1)+'" x2="'+(W-mR)+'" y2="'+y(t).toFixed(1)+'" stroke="#DCE2E6" stroke-width="1"/>';
+    svg += '<text x="'+(mL-6)+'" y="'+(y(t)+3).toFixed(1)+'" text-anchor="end" font-size="10" fill="#6B7680">'+t+'</text>';
+  });
+  // x labels
+  [0,20,40,60,80,100].forEach(function(t){
+    svg += '<text x="'+x(t).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="9.5" fill="#7A8590">'+t+'%</text>';
+  });
+
+  // selected range shading
+  svg += '<rect x="'+x(opts.a).toFixed(1)+'" y="'+mT+'" width="'+(x(opts.b)-x(opts.a)).toFixed(1)+'" height="'+ph+'" fill="'+opts.lineColor+'" opacity="0.10"/>';
+
+  // area + line
+  svg += '<path d="'+areaD+'" fill="'+opts.fillColor+'" opacity="0.12" stroke="none"/>';
+  svg += '<path d="'+pathD+'" fill="none" stroke="'+opts.lineColor+'" stroke-width="2"/>';
+
+  // static markers: cutoff point and target (objetivo) point — only drawn when requested (time chart)
+  if(opts.showMarkers){
+    function drawMarker(soc, dashColor, dotColor, title, side){
+      var xPix = x(soc), yPix = y(opts.points[soc].val);
+      var valueText = opts.unit==='kW' ? (Math.round(opts.points[soc].val*10)/10)+' kW' : fmtDuration(opts.points[soc].val*60);
+      var out = '';
+      out += '<line x1="'+xPix.toFixed(1)+'" y1="'+mT+'" x2="'+xPix.toFixed(1)+'" y2="'+(mT+ph)+'" stroke="'+dashColor+'" stroke-width="1.5" stroke-dasharray="4 3"/>';
+      out += '<line x1="'+mL+'" y1="'+yPix.toFixed(1)+'" x2="'+xPix.toFixed(1)+'" y2="'+yPix.toFixed(1)+'" stroke="'+dotColor+'" stroke-width="1" stroke-dasharray="2 3" opacity="0.7"/>';
+      out += '<circle cx="'+xPix.toFixed(1)+'" cy="'+yPix.toFixed(1)+'" r="4" fill="'+dotColor+'" stroke="#FFFFFF" stroke-width="1.5"/>';
+
+      var boxW=104, boxH=34;
+      var boxX = side==='left' ? (xPix-9-boxW) : (xPix+9);
+      if(boxX < mL) boxX = mL;
+      if(boxX+boxW > W-mR) boxX = W-mR-boxW;
+      var boxY = yPix-boxH/2;
+      if(boxY < mT) boxY = mT;
+      if(boxY+boxH > mT+ph) boxY = mT+ph-boxH;
+
+      out += '<rect x="'+boxX.toFixed(1)+'" y="'+boxY.toFixed(1)+'" width="'+boxW+'" height="'+boxH+'" rx="5" fill="#FFFFFF" stroke="'+dashColor+'" stroke-width="1"/>';
+      out += '<text x="'+(boxX+8).toFixed(1)+'" y="'+(boxY+14).toFixed(1)+'" font-size="10.5" font-weight="700" fill="'+dashColor+'">'+title+'</text>';
+      out += '<text x="'+(boxX+8).toFixed(1)+'" y="'+(boxY+27).toFixed(1)+'" font-size="10.5" fill="#182126">'+valueText+'</text>';
+      return out;
+    }
+    svg += drawMarker(opts.cutoff, '#C23B2E', '#C23B2E', 'Corte '+opts.cutoff+'%', 'left');
+    if(opts.target !== opts.cutoff){
+      svg += drawMarker(opts.target, '#6B7680', opts.lineColor, 'Objetivo '+opts.target+'%', 'right');
+    }
+  } else {
+    svg += '<line x1="'+x(opts.cutoff).toFixed(1)+'" y1="'+mT+'" x2="'+x(opts.cutoff).toFixed(1)+'" y2="'+(mT+ph)+'" stroke="#C23B2E" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.6"/>';
+    svg += '<text x="'+x(opts.cutoff).toFixed(1)+'" y="'+(mT+9)+'" text-anchor="middle" font-size="10" fill="#C23B2E">'+opts.cutoff+'%</text>';
+  }
+
+  // interactive crosshair (hidden until hover/touch)
+  var p = opts.idPrefix;
+  svg += '<g id="'+p+'-cross" opacity="0" pointer-events="none">';
+  svg += '<line id="'+p+'-cl" x1="0" y1="'+mT+'" x2="0" y2="'+(mT+ph)+'" stroke="#8D97A0" stroke-width="1" stroke-dasharray="3 3"/>';
+  svg += '<rect id="'+p+'-cb" rx="5" fill="#FFFFFF" stroke="#C7CED3" stroke-width="1"></rect>';
+  svg += '<text id="'+p+'-ct1" font-size="11" font-weight="700" fill="#182126"></text>';
+  svg += '<text id="'+p+'-ct2" font-size="10" fill="#5B6770"></text>';
+  svg += '<circle id="'+p+'-cd" r="4.5" fill="'+opts.lineColor+'" stroke="#FFFFFF" stroke-width="2"/>';
+  svg += '</g>';
+
+  // pointer capture area
+  svg += '<rect id="'+p+'-cap" x="'+mL+'" y="'+mT+'" width="'+pw+'" height="'+ph+'" fill="transparent"/>';
+
+  svg += '</svg>';
+  return svg;
+}
+
+function attachHover(containerId, idPrefix, points, unit, maxY){
+  var container = document.getElementById(containerId);
+  var svg = container.querySelector('svg');
+  var cap = svg.getElementById(idPrefix+'-cap');
+  var cross = svg.getElementById(idPrefix+'-cross');
+  var cl = svg.getElementById(idPrefix+'-cl');
+  var cb = svg.getElementById(idPrefix+'-cb');
+  var ct1 = svg.getElementById(idPrefix+'-ct1');
+  var ct2 = svg.getElementById(idPrefix+'-ct2');
+  var cd = svg.getElementById(idPrefix+'-cd');
+
+  function xScale(soc){ return CH.mL + (soc/100)*CH.pw; }
+  function yScale(v){ return CH.mT + CH.ph - (v/maxY)*CH.ph; }
+
+  function move(clientX){
+    var rect = svg.getBoundingClientRect();
+    var scale = CH.W/rect.width;
+    var localX = (clientX-rect.left)*scale;
+    var soc = Math.round(((localX-CH.mL)/CH.pw)*100);
+    soc = Math.max(0, Math.min(100, soc));
+    var val = points[soc].val;
+    var xPix = xScale(soc), yPix = yScale(val);
+
+    cl.setAttribute('x1', xPix); cl.setAttribute('x2', xPix);
+    cd.setAttribute('cx', xPix); cd.setAttribute('cy', yPix);
+    ct1.textContent = soc + '% SoC';
+    ct2.textContent = unit==='kW' ? (Math.round(val*10)/10)+' kW' : fmtDuration(val*60);
+
+    var boxW = 78, boxH = 34;
+    var boxX = xPix + 10;
+    if(boxX + boxW > CH.W - CH.mR) boxX = xPix - 10 - boxW;
+    var boxY = yPix - boxH - 10;
+    if(boxY < CH.mT) boxY = yPix + 10;
+    if(boxY + boxH > CH.H - CH.mB) boxY = CH.H - CH.mB - boxH;
+
+    cb.setAttribute('x', boxX); cb.setAttribute('y', boxY);
+    cb.setAttribute('width', boxW); cb.setAttribute('height', boxH);
+    ct1.setAttribute('x', boxX+9); ct1.setAttribute('y', boxY+15);
+    ct2.setAttribute('x', boxX+9); ct2.setAttribute('y', boxY+28);
+    cross.setAttribute('opacity','1');
+  }
+  function hide(){ cross.setAttribute('opacity','0'); }
+
+  cap.addEventListener('mousemove', function(e){ move(e.clientX); });
+  cap.addEventListener('mouseleave', hide);
+  cap.addEventListener('touchstart', function(e){ move(e.touches[0].clientX); }, {passive:true});
+  cap.addEventListener('touchmove', function(e){ move(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
+  cap.addEventListener('touchend', hide);
+}
+
+function buildGauge(value, max){
+  var pct = Math.max(0, Math.min(1, value/max));
+  var circumference = Math.PI*80;
+  var svg = '<svg viewBox="0 0 200 120" width="100%" style="max-width:220px;display:block;margin:0 auto;">';
+  svg += '<path d="M20,110 A80,80 0 0,1 180,110" stroke="#E1E6EA" stroke-width="14" fill="none" stroke-linecap="round"/>';
+  svg += '<path d="M20,110 A80,80 0 0,1 180,110" stroke="#C1650B" stroke-width="14" fill="none" stroke-linecap="round" stroke-dasharray="'+(pct*circumference).toFixed(1)+' '+circumference.toFixed(1)+'"/>';
+  svg += '<text x="100" y="95" text-anchor="middle" font-size="28" font-weight="700" fill="#182126">'+Math.round(value)+'</text>';
+  svg += '<text x="100" y="112" text-anchor="middle" font-size="11" fill="#5B6770">kW medios</text>';
+  svg += '</svg>';
+  return '<div class="label" style="text-align:center;">Potencia media en la sesión</div>' + svg;
+}
+
+var state = { startSoc:10, endSoc:90, cutoffSoc:80, tempC:20, price:0.45, consumo:19, consumoCiudad:16, nowSoc:50 };
+
+function render(){
+  var factor = tempFactor(state.tempC);
+  var a = Math.min(state.startSoc, state.endSoc);
+  var b = Math.max(state.startSoc, state.endSoc);
+
+  var powerPoints = [], timePoints = [];
+  var maxMin = 0;
+  for(var i=0;i<=100;i++){
+    var kw = Math.round(KW[i]*factor*10)/10;
+    var min = SEC[i]/factor/60;
+    powerPoints.push({soc:i, val:kw});
+    timePoints.push({soc:i, val:min});
+    if(min>maxMin) maxMin = min;
+  }
+
+  var powerTicksInfo = niceTicks(90, 9);
+  document.getElementById('chartPower').innerHTML = buildChart({
+    points: powerPoints, maxY: powerTicksInfo.max, yTicks: powerTicksInfo.ticks,
+    cutoff: state.cutoffSoc, target: state.endSoc, a:a, b:b, lineColor:'#C1650B', fillColor:'#C1650B', idPrefix:'pw', unit:'kW', showMarkers:false
+  });
+  attachHover('chartPower','pw', powerPoints, 'kW', powerTicksInfo.max);
+
+  var timeTicksInfo = niceTicks(niceMax(maxMin, 5), 8);
+  document.getElementById('chartTime').innerHTML = buildChart({
+    points: timePoints, maxY: timeTicksInfo.max, yTicks: timeTicksInfo.ticks,
+    cutoff: state.cutoffSoc, target: state.endSoc, a:a, b:b, lineColor:'#0E8272', fillColor:'#0E8272', idPrefix:'tm', unit:'min', showMarkers:true
+  });
+  attachHover('chartTime','tm', timePoints, 'min', timeTicksInfo.max);
+
+  var energyKwh = KWH[b]-KWH[a];
+  var timeNominal = SEC[b]-SEC[a];
+  var timeAdjusted = timeNominal/factor;
+  var avgPower = timeAdjusted>0 ? energyKwh/(timeAdjusted/3600) : 0;
+  var km = energyKwh*100/state.consumo;
+  var cost = energyKwh*state.price;
+
+  document.getElementById('gaugeCard').innerHTML = buildGauge(avgPower, 92);
+  document.getElementById('mTime').textContent = fmtDuration(timeAdjusted);
+  document.getElementById('mEnergy').textContent = '+' + fmtNum(energyKwh,1) + ' kWh';
+  document.getElementById('mKm').textContent = '+' + Math.round(km) + ' km';
+  document.getElementById('mCost').textContent = fmtNum(cost,2) + ' €';
+
+  var adv = document.getElementById('advisory');
+  if(state.cutoffSoc > a && state.cutoffSoc < b){
+    var energyToCutoff = KWH[state.cutoffSoc]-KWH[a];
+    var timeToCutoff = (SEC[state.cutoffSoc]-SEC[a])/factor;
+    var energyAfter = KWH[b]-KWH[state.cutoffSoc];
+    var timeAfter = (SEC[b]-SEC[state.cutoffSoc])/factor;
+    var kmAfter = energyAfter*100/state.consumo;
+    adv.style.display = 'block';
+    adv.innerHTML = '<div class="label">Punto de decisión: '+state.cutoffSoc+'%</div>' +
+      '<p>Hasta el '+state.cutoffSoc+'% tardas <b>'+fmtMin(timeToCutoff)+'</b> y recuperas <b>'+fmtNum(energyToCutoff,1)+' kWh</b>. ' +
+      'Seguir hasta el '+b+'% te cuesta <b class="warn">'+fmtMin(timeAfter)+' más</b> para ganar solo <b class="warn">'+Math.round(kmAfter)+' km</b> de autonomía. ' +
+      'Suele compensar más parar aquí y seguir circulando.</p>';
+  } else {
+    adv.style.display = 'none';
+  }
+
+  document.getElementById('factorHint').textContent = 'Factor de potencia estimado: ' + Math.round(factor*100) + '%' + (factor<1 ? ' (estimación, no dato de fábrica)' : '');
+
+  var USABLE_KWH = 68.3;
+  var energyNow = (state.nowSoc/100) * USABLE_KWH;
+  document.getElementById('nowSocLabel').textContent = state.nowSoc;
+  document.getElementById('rangeCity').textContent = '+' + Math.round(energyNow*100/state.consumoCiudad) + ' km';
+  document.getElementById('rangeHighway').textContent = '+' + Math.round(energyNow*100/state.consumo) + ' km';
+}
+
+function bindPair(rangeId, numId, key, min, max, step){
+  var rangeEl = document.getElementById(rangeId);
+  var numEl = document.getElementById(numId);
+
+  function apply(v){
+    v = Math.min(max, Math.max(min, v));
+    state[key] = v;
+    rangeEl.value = v;
+    numEl.value = v;
+    render();
+  }
+
+  rangeEl.addEventListener('input', function(){
+    apply(parseFloat(rangeEl.value));
+  });
+  numEl.addEventListener('input', function(){
+    if(numEl.value === '') return;
+    var v = parseFloat(numEl.value);
+    if(isNaN(v)) return;
+    state[key] = Math.min(max, Math.max(min, v));
+    rangeEl.value = state[key];
+    render();
+  });
+  numEl.addEventListener('blur', function(){
+    apply(parseFloat(numEl.value) || min);
+  });
+  numEl.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ numEl.blur(); }
+  });
+}
+
+bindPair('startSoc','numStart','startSoc',0,99,1);
+bindPair('endSoc','numEnd','endSoc',1,100,1);
+bindPair('cutoffSoc','numCutoff','cutoffSoc',60,90,1);
+bindPair('tempC','numTemp','tempC',-15,35,1);
+bindPair('price','numPrice','price',0.10,0.90,0.01);
+bindPair('consumo','numConsumo','consumo',14,26,1);
+bindPair('consumoCiudad','numConsumoCiudad','consumoCiudad',12,20,1);
+bindPair('nowSoc','numNowSoc','nowSoc',0,100,1);
+
+function switchTab(name){
+  document.getElementById('tabCarga').classList.toggle('active', name==='carga');
+  document.getElementById('tabAutonomia').classList.toggle('active', name==='autonomia');
+  document.getElementById('tabBtnCarga').classList.toggle('active', name==='carga');
+  document.getElementById('tabBtnAutonomia').classList.toggle('active', name==='autonomia');
+}
+
+render();
+</script>
+</body>
+</html>
